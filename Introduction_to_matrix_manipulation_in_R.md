@@ -7,42 +7,27 @@
 x <- 1; # This variable has name 'x'. It is assigned to hold the number 1
 print(x);
 ```
-- check missing data  
+- A vector holds an ordered list of values 
 
 ```
-#check missing value
-f<-function(x) sum(is.na(x))
-#1 = summarize by row; 2= summarize by column
-d<-as.data.frame(apply(dat,2,f))
-d$id=row.names(d)
-head(d[order(d[,1],decreasing=TRUE),])
-
-#convert missing value to 0
-dat[is.na(dat)] <- 0
+x <- 1:10; #In this case, x is a vector of cosecurtive natural numbers 1, 2, 3,..., 10
+print(x);
 ```
 
-- **pearson correlation test**  
-test correlation between two samples, here take NPC0001PT00264T00264 and NPC0001PT00004T00004 as an example.  
-Generate correlation plot (using R) between quantified genes from two samples (or gene from polyA+ and total RNA-seq).Don't forget to log the RNA expression before scatter plot.  
+- We can perform simple arithmetic operations on a vector 
 
 ```
-#install.packages("ggplot2")
-#install.packages("dplyr")
-
-library(ggplot2)
-library(dplyr)
-
-a=dat[,"NPC0001PT00264T00264"]
-b=dat[,"NPC0001PT00004T00004"]
-cor(a,b,method="pearson")
-ggplot(dat,aes(x=log(dat[,"NPC0001PT00264T00264"]),y=log(dat[,"NPC0001PT00004T00004"])))+ geom_point(size=1,shape=15)+geom_smooth(method=lm)
-```
-
-multiple correlation test for the whole matrix.  
+y <- x^2 - 2*x + 4;  # Simple algebraic operations can be applied to all the values in a vector. In this case, y is also a vector of 10 values.
+print(y);
+plot(x, y, type="b", main="Relationship between x and y");   # The 'plot' function generates a 2-dimensional x-y plot 
 
 ```
-c=cor(dat,method="pearson")
-head(c)
+
+- A matrix holds an ordered arrangement of n x m numbers (n is number of rows, and m is number of columns) 
+
+```
+x <- matrix(1:15, nrow=5, ncol=3)  #x is assigned to be a matrix consisting of 2 rows and 5 columns, containing the values 1, 2, 3,..., 15
+print(x);
 ```  
 
 - **PCA plot**  
