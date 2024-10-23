@@ -30,170 +30,65 @@ x <- matrix(1:15, nrow=5, ncol=3)  #x is assigned to be a matrix consisting of 2
 print(x);
 ```  
 
-- **PCA plot**  
+- A matrix can be manipulated   
 
 ```
-#install.packages('ggfortify')
-library(ggfortify)
-dat_pca=t(dat)
-#head(dat_pca[,1:100])
+x.times.2 <- x*2; # this operation multiplies all values in x by 2
+print(x.times.2);
+x.plus.1 <- x+1; # this operation adds all values in x by 1
+print(x.plus.1);
+x.transposed <- t(x);   # this operation transposes a n x m matrix to a m x n matrix
+print(x.transposed);
 
-##apply PCA - scale. = TRUE is highly advisable, but default is FALSE. 
-out_pca <- prcomp(dat_pca,scale= TRUE)
-plot(out_pca,type="l")
-autoplot(out_pca,data=dat_pca,size=0.1,label=FALSE,label.size=5)
 ```  
   
   
-- read in sample information  
-Sample ID, "event", "time to event" and "clinical stage" gain  
-
-see file *GSE102349_series_matrix_survival.csv*, clinical file should involved Sample ID, "event", "time to event" and "clinical_stage" extracted from file *GSE102349_series_matrix.txt.gz*. Here we also group samples based on clinical stage. 
+- You can access different elements of a matrix  
 
 ```
-info <- as.data.frame(read.table("GSE102349_series_matrix_survival.csv",header = TRUE,sep = ",", dec = ".",na.strings = "NA",stringsAsFactors=FALSE,check.names = FALSE))
-row.names(info) <- info[,1]
-info<-info[,-1]
-dim(info)
-
-#remove missing data and filter out clinical stage I and II samples
-info=info[!info[, "time"] == "N/A",]
-info=info[info[, "clinical_stage"] == "III" | info[, "clinical_stage"] == "IV",]
-
-#set time to numeric datatype
-info$time=as.numeric(as.character(info$time))
-
-dim(info)
-head(info)
-table(info$`clinical_stage`)
-```
-
-- **survival plot**  
+print(x);  # Show the entire matrix
+print(x[2,2]);  # Show the element in the second row and second column
+print(x[1:2,2:3]); # Show the elements in row 1 and 2, and columns 2 and 3. The output is a matrix
+print(x[1,]);  # Show the elements in the 1st ro. The output is a vector
+print(x[,3]); # Show the elements in the 3rd column. The output is a vector
+print(x[-1,]); # This operation show the elements in all rows and columns, EXCEPT the 1st row
 
 ```
-#install.packages("survminer")
-#install.packages("survival")
 
-library(survival)
-library(ggplot2)
-library(survminer)
-library(dplyr)
+- You can add row and column names to a matrix, and access elements by these names
 
-#set time value to numeric 
-info$time=as.numeric(as.character(info$time))
-
-#set status value to numeric
-a <- sub("Disease progression",1,info$event)
-info$event <- as.numeric(as.character(sub("Last follow-up",0,a)))
-head(info)
-
-coxph(Surv(time, event)~clinical_stage, data=info)
-fit <- survfit(Surv(time, event)~clinical_stage, data=info)
-ggsurvplot(fit, conf.int=TRUE, pval=TRUE)
 ```
-
-
-- **Perform differential gene expression analysis** using [limma](https://bioconductor.org/packages/release/bioc/html/limma.html)
-```
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-
-BiocManager::install("limma")  
-
-library("limma")
-library("ggrepel")
-
-###differential expression use limma###
-exprSet<-dat[,row.names(info)]
-head(exprSet)
-
-par(cex = 0.7)
-n.sample=ncol(exprSet)
-if(n.sample>40) par(cex = 0.5)
-cols <- rainbow(n.sample*1.2)
-boxplot(exprSet, col = cols,main="expression value",las=2)
-
-
-group<-info$clinical_stage
-design <- model.matrix(~0+group)
-colnames(design)=levels(factor(group))
-rownames(design)=colnames(exprSet)
-contrast.matrix<-makeContrasts(paste0(unique(group),collapse = "-"),levels = design)
-fit <- lmFit(exprSet,design)
-fit2 <- contrasts.fit(fit, contrast.matrix)
-fit2 <- eBayes(fit2)
-tempOutput <- topTable(fit2, coef=1, n=Inf)
-nrDEG <- na.omit(tempOutput) 
-
-nrDEG_t<-as.data.frame(nrDEG)
-colnames(nrDEG_t)<-c("logFC","AveExpr","t","P.Value","padj","B")
-head(nrDEG_t)
+rownames(x) <- paste("Row",1:5,sep="");
+colnames(x) <- paste("Col", LETTERS[1:3], sep="");
+print(x);
+print(x["Row3",]);   
+print(x[,"ColB"]);
+print(x["Row3", "ColB"]);
 
 ```
 
 
-- **VOLCONA PLOT**  
+- Generate summary statistics of a matrix 
 ```
-#draw picture
-library(ggplot2)
-DEG=nrDEG_t
+apply(x, 1, sum); #this operation compute the sum of all values of each row (e.g., dimension 1)
+apply(x, 2, mean); #this operation computer the arithmetic means of each column (e.g., dimension 2)
 
-colnames(DEG)
-plot(DEG$logFC,-log10(DEG$P.Value))
-#logFC_cutoff <- with(DEG,mean(abs(logFC)) + 2*sd(abs( logFC)) )
-logFC_cutoff=1  #set cut off
-DEG$change = as.factor(ifelse(DEG$P.Value < 0.05 & abs(DEG$logFC) > logFC_cutoff,
-                              ifelse(DEG$logFC > logFC_cutoff ,'UP','DOWN'),'NOT')
-)
-table(DEG$change)
-this_tile <- paste0('Cutoff for logFC is ',round(logFC_cutoff,3),
-                    '\nThe number of up gene is ',nrow(DEG[DEG$change =='UP',]) ,
-                    '\nThe number of down gene is ',nrow(DEG[DEG$change =='DOWN',])
-)
-g = ggplot(data=DEG, aes(,x=logFC, y=-log10(P.Value),color=change)) + geom_point(alpha=0.4, size=1.75) +
-  theme_set(theme_set(theme_bw(base_size=20)))+ xlab("log2 fold change") + ylab("-log10 p-value") + 
-  ggtitle(this_tile) +  theme(plot.title = element_text(size=15,hjust = 0.5)) + 
-  scale_colour_manual(values = c('blue','black','red')) ## corresponding to the levels(res$change)
-print(g)
-#ggsave(g,filename = 'volcano.pvalue.png')
 ```
 
 
-
-- **HEATMAP PLOT** 
-
+- You can use ? in front of any function to display it's usage  
 ```
-#install.packages("pheatmap")
-library(stats)
-library(ggplot2)
-library(pheatmap)
-
-#extract top 100 differential expressed genes and 
-diff=nrDEG_t[order(nrDEG_t[,"logFC"],decreasing=TRUE),][1:100,] 
-head(diff)
-dim(diff)
-
-#standalization
-aa=t(dat[row.names(diff),])
-aa=t(scale(aa))
-
-p<-pheatmap(aa,show_rownames=F,show_colnames=F,cluster_cols=T, cluster_rows=T,cex=1, clustering_distance_rows="euclidean", cex=1,clustering_distance_cols="euclidean", clustering_method="complete", border_color=FALSE)
-p
-
-#get samples/features ID
-#colnames(aa[,p$tree_col[["order"]]]) 
-#rownames(aa[p$tree_row[["order"]],])  
-
+?rownames
 ```
 
 
 
 
 *************************
-*Q1:How large difference among the results from pearson correlation, spearman collelation and kendall collelation*  
-*Q2:which raw information should be extracted from GSE102349_series_matrix.txt file?*  
-*Q3: What limma actually do? Why need to do normalization?  
-*（additional）Try to understand each figures*
+Learning objectives:
+1) Understand the different data types: variable, vector and matrix.
+2) Know how to enter values into and data type and recover a value from a variable, vector and matrix.
+3) Perform simple arithmetic operations and manipulations in a variable, vector and matrix.
 ***************************
 
 
